@@ -1,0 +1,78 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## Group 19 (so cool, the best)
+
+We say most common dispensed pharmaceuticals - we are using NumPpl, how many people have received a medication, to track this, rather than the number of dispensings.
+
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+### Pharmaceuticals Lookup Metadata
+
+Can combine to also look at TG1, or all three therapeutic groups together.
+
+```{r}
+metadata <- read.csv("PharmaceuticalsLookup.csv")
+head(metadata)
+```
+
+### New Zealand Totals by TG2
+
+```{r}
+# New Zealand Totals by TG2
+tg2 <- read.csv("Data_ByTG2.csv")
+
+tg2 <- tg2 %>%
+  filter(NumDisps != "<6", NumPpl != "<6") %>%
+  mutate(
+    NumDisps = as.integer(NumDisps),
+    NumPpl = as.integer(NumPpl)
+  )
+
+counts <- tg2 %>%
+  group_by(TherapeuticGrp2) %>%
+  summarise(
+    NumPpl_count = sum(NumPpl),
+    .groups = "drop"
+  )
+
+print(counts, n = 123)
+```
+
+```{r}
+# Arrange in Descending Order to Find Most Common 
+counts <- counts %>% arrange(desc(NumPpl_count))
+print(counts, n=123)
+```
+
+```{r}
+countsAscending <- counts %>% arrange(NumPpl_count)
+
+ggplot(countsAscending, aes(x = seq_along(NumPpl_count), y = NumPpl_count)) + 
+  geom_line(color = "blue", linewidth = 1) +
+  geom_point(color = "red", size = 2) +
+  theme_minimal()
+```
+
+### Merge if you wanna compare all 3
+
+```{r}
+# Merged database: PharmaceuticalsLookup and Data_ByTG2
+
+```
+
+### Census Data (Not Yet Cleaned)
+
+Note the census counts Hutt Valley and C&C as one DHB, must be combined in TG2 if wanting to merge.
+
+```{r}
+# NZ Census Data: Using 2023 to represent the post-covid trends captured by the Pharmac dataset, and is centre point of temporal data (2021-2025)
+# This is a wide dataset
+
+census2023 <- read.csv("census2023.csv")
+```
