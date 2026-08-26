@@ -74,7 +74,7 @@ fig1 <- ggplot(
   labs(
     title = "Top 10 Therapeutic Groups by Initial Dispensings",
     x = "Therapeutic Group Level 2",
-    y = "Total initial dispensings (2021–2024)"
+    y = "Total initial dispensings (2021–2025)"
   ) +
   theme_minimal() +
   theme(
@@ -138,7 +138,7 @@ fig2 <- ggplot(
     labels = scales::comma
   ) +
   scale_x_continuous(
-    breaks = 2021:2024
+    breaks = 2021:2025
   ) +
   labs(
     title = "Trends in Initial Dispensings for the Top 10 Therapeutic Groups",
@@ -236,7 +236,7 @@ fig3 <- ggplot(
   labs(
     title = "Total Initial Dispensings by District",
     x = "District",
-    y = "Total initial dispensings (2021–2024)"
+    y = "Total initial dispensings (2021–2025)"
   ) +
   theme_minimal() +
   theme(
@@ -370,7 +370,7 @@ lowest_districts <- district_total %>%
 lowest_districts
 
 
-# Change from 2021 to 2024
+# Change from 2021 to 2025
 
 change_top10 <- trend_top10 %>%
   group_by(
@@ -381,16 +381,16 @@ change_top10 <- trend_top10 %>%
       total_dispensings[
         YearDisp == 2021
       ],
-    dispensing_2024 =
+    dispensing_2025 =
       total_dispensings[
-        YearDisp == 2024
+        YearDisp == 2025
       ],
     change =
-      dispensing_2024 -
+      dispensing_2025 -
       dispensing_2021,
     percent_change =
       (
-        dispensing_2024 -
+        dispensing_2025 -
           dispensing_2021
       ) /
       dispensing_2021 *
