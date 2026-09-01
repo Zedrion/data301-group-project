@@ -1,0 +1,471 @@
+\documentclass[11pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{hyperref}
+
+\geometry{
+    a4paper,
+    left=2.5cm,
+    right=2.5cm,
+    top=2.5cm,
+    bottom=2.5cm
+}
+
+\setstretch{1.15}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=black
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Data Science Project Report}
+\fancyhead[R]{Pharmaceutical Analysis}
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.4pt}
+
+\begin{document}
+
+\begin{titlepage}
+
+\centering
+
+\vspace*{2cm}
+
+{\Huge \textbf{Exploratory Analysis of Pharmaceutical Data in New Zealand}\par}
+
+\vspace{1.5cm}
+
+{\Large Data Science Project Report\par}
+
+\vspace{2cm}
+
+{\large
+\textbf{Course:} DATA301\par
+}
+
+{\large
+\textbf{Project Group 19}\par}
+
+
+
+
+\vspace{0.8cm}
+
+{\large
+Jessica Saucedo Mancias\par
+Nam Bui\par
+Tianyi Xu\par
+Zion Swinburne\par
+}
+
+\vspace{1cm}
+
+
+\vspace{0.5cm}
+
+{\large
+\textbf{Date of Submission:} 03 September 2026\par
+}
+
+\vfill
+
+{\large
+Victoria University of Wellington
+\par}
+
+\end{titlepage}
+
+\tableofcontents
+
+\clearpage
+
+
+\chapter{Background and Data}
+
+\section{Background}
+
+This project investigates patterns in pharmaceutical use in New Zealand using publicly available summary data from Health New Zealand. The analysis covers initial pharmaceutical dispensings between 2021 and 2025 and focuses on Therapeutic Group Level 2 categories and health districts.
+
+The main objective is to identify differences in the number of patients associated with initial dispensings across therapeutic groups, years, and districts. This provides an exploratory view of how pharmaceutical activity is distributed across New Zealand and how these patterns have changed over time.
+
+Pharmaceutical data are useful for identifying broad patterns in healthcare activity. For example, differences between therapeutic groups may indicate that some classes of medicines are associated with substantially larger numbers of patients than others. Temporal patterns can also indicate whether patient counts are relatively stable, increasing, or declining. District-level comparisons provide an additional geographical perspective.
+
+The analysis is exploratory rather than causal. The observed differences cannot by themselves establish why pharmaceutical patient counts differ between therapeutic groups or districts.
+
+
+\section{Data Sources}
+
+The primary dataset was obtained from the Health New Zealand Pharmaceutical Data web tool. The Pharmaceutical Data web tool provides summary information about initial dispensings and community pharmaceutical dispensings funded by the New Zealand Government.
+
+The source is:
+
+\begin{quote}
+Health New Zealand. 2026. \textit{Pharmaceutical Data web tool}, version 07 August 2026. Data extracted from the Pharmaceutical Collection on 09 July 2026.
+\end{quote}
+
+The pharmaceutical collection contains claim and payment information supplied by pharmacies for subsidised dispensings. The publicly available data are statistical and non-identifiable.
+
+The analysis uses pharmaceutical data covering 2021--2025.
+
+
+\section{Data Structure}
+
+The main variables used in the analysis are:
+
+\begin{itemize}
+    \item \textbf{TherapeuticGrp2}: Therapeutic Group Level 2 pharmaceutical category. This is a categorical variable with multiple therapeutic categories.
+    \item \textbf{District}: health district associated with the pharmaceutical record.
+    \item \textbf{YearDisp}: year in which the pharmaceutical was dispensed.
+    \item \textbf{NumDisps}: number of initial dispensings.
+    \item \textbf{NumPpl}: number of patients associated with the dispensing records.
+    \item \textbf{NHIComp}: measure of NHI completeness.
+\end{itemize}
+
+The data therefore contain both categorical and numerical variables. Therapeutic group and district are categorical variables, while year and patient counts are numerical variables.
+
+The analysis uses \texttt{NumPpl} rather than \texttt{NumDisps} as the primary measure. This provides a patient-oriented perspective and avoids interpreting repeated dispensing events as separate patients within an individual record.
+
+
+\section{Data Quality and Missing Values}
+
+The pharmaceutical dataset contains observations where patient counts are reported as ``<6''. These values are suppressed because very small counts could potentially reduce privacy and anonymity.
+
+Because ``<6'' does not provide an exact numerical value, these observations cannot be included as exact counts in numerical aggregation. They were therefore treated as missing for the quantitative analysis.
+
+The original structure of these values was checked before conversion. A new numerical variable, \texttt{NumPpl\_num}, was created by converting numerical values to numeric format while treating ``<6'' as missing.
+
+This approach prevents the suppressed values from being incorrectly interpreted as zero or as an arbitrary numerical value.
+
+The dataset was also checked for missing values and duplicate rows before analysis.
+
+
+\section{Data Preparation}
+
+The pharmaceutical data were grouped by Therapeutic Group Level 2, year, and district to obtain aggregate patient counts.
+
+For district-level comparisons, the ``New Zealand'' national total was removed. This leaves the individual health districts and prevents the national total from being compared directly with individual districts.
+
+The resulting data were used to produce four exploratory visualisations:
+
+\begin{enumerate}
+    \item the top ten Therapeutic Group Level 2 categories by patient count;
+    \item trends in patient counts for the top ten groups from 2021 to 2025;
+    \item total patient counts by health district;
+    \item a heatmap showing the top ten therapeutic groups across districts.
+\end{enumerate}
+
+
+\chapter{Exploratory Data Analysis}
+
+\section{Top 10 Therapeutic Groups by Patient Count}
+
+Figure~\ref{fig:top10} presents the ten Therapeutic Group Level 2 categories with the largest aggregate numbers of patients associated with initial dispensings between 2021 and 2025.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.90\textwidth]{top10_groups.png}
+    \caption{Top 10 Therapeutic Groups by Number of Patients, 2021--2025.}
+    \label{fig:top10}
+\end{figure}
+
+Analgesics have the highest aggregate patient count, followed by Antibacterials and Non-Steroidal Anti-Inflammatory Drugs. There is a substantial difference between these three groups and the remaining categories.
+
+The ranking suggests that a relatively small number of therapeutic categories account for a large proportion of the patient-associated activity represented in the dataset. Analgesics are clearly separated from the other categories, while Antibacterials and Non-Steroidal Anti-Inflammatory Drugs form a second high-volume group.
+
+The remaining categories have considerably smaller totals, although they still involve hundreds of thousands of patient-associated records across the five-year period.
+
+The top ten groups identified were:
+
+\begin{enumerate}
+    \item Analgesics
+    \item Antibacterials
+    \item Non-Steroidal Anti-Inflammatory Drugs
+    \item Antihistamines
+    \item Antiulcerants
+    \item Corticosteroids Topical
+    \item Agents Affecting the Renin-Angiotensin System
+    \item Lipid-Modifying Agents
+    \item Antidepressants
+    \item Vitamins
+\end{enumerate}
+
+These categories were subsequently used for the temporal and district-level analyses.
+
+
+\section{Changes in Patient Counts Over Time}
+
+Figure~\ref{fig:trend} shows the annual patient counts associated with the ten highest-volume therapeutic groups between 2021 and 2025.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{trend_top10.png}
+    \caption{Trends in the Number of Patients for the Top 10 Therapeutic Groups, 2021--2025.}
+    \label{fig:trend}
+\end{figure}
+
+The temporal patterns are not identical across therapeutic groups. Analgesics remain the largest category throughout the entire period. Their patient count increased substantially between 2021 and 2023, reached a relatively stable level in 2024, and decreased slightly in 2025.
+
+Antibacterials show a similar pattern of strong growth between 2021 and 2023 followed by a gradual decline in 2024 and 2025. This indicates that the ranking of the largest groups was not simply caused by one unusual year.
+
+Non-Steroidal Anti-Inflammatory Drugs show a more consistent upward pattern across the five years. Their patient count increased from approximately 1.2 million in 2021 to nearly 1.5 million in 2025.
+
+Several of the lower-volume groups also show relatively steady increases. Antihistamines, Antiulcerants, and Lipid-Modifying Agents all increase across much of the study period.
+
+Vitamins show one of the clearest relative increases among the lower-volume groups. The patient count increases substantially from 2021 to 2025, although its overall level remains below the largest therapeutic groups.
+
+These patterns demonstrate why examining only the five-year total can hide important temporal differences. Two therapeutic groups can have similar aggregate totals while following different trajectories over time.
+
+
+\section{District-Level Differences}
+
+Figure~\ref{fig:district} compares the aggregate number of patients associated with initial pharmaceutical dispensings across the 20 individual health districts.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.90\textwidth]{district_total.png}
+    \caption{Total Number of Patients by District, 2021--2025.}
+    \label{fig:district}
+\end{figure}
+
+The district comparison shows substantial variation in the aggregate number of patients.
+
+Counties Manukau has the highest total, followed by Waitemata and Canterbury. Auckland and Waikato also have relatively high totals. At the other end of the distribution, West Coast has the lowest aggregate count, followed by Tairawhiti, Wairarapa, and South Canterbury.
+
+The pattern is strongly associated with the scale of the population represented by each district. Larger districts are expected to have more patients simply because they contain more people.
+
+Consequently, the results should not be interpreted as evidence that residents of one district use pharmaceuticals more frequently than residents of another district.
+
+For example, the difference between Counties Manukau and West Coast is large in absolute terms, but the figure does not account for the different population sizes of the two districts.
+
+A more informative comparison for future analysis would therefore calculate a population-adjusted patient rate, such as the number of patients per 1,000 residents.
+
+
+\section{Therapeutic Groups Across Districts}
+
+Figure~\ref{fig:heatmap} presents a heatmap of the top ten therapeutic groups across the 20 districts.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{district_top10.png}
+    \caption{Top 10 Therapeutic Groups by Number of Patients Across Districts, 2021--2025.}
+    \label{fig:heatmap}
+\end{figure}
+
+The heatmap provides a more detailed view than the overall district totals because it considers therapeutic group and district simultaneously.
+
+Analgesics have high patient counts across the major districts, consistent with their position as the highest-volume therapeutic group in Figure~\ref{fig:top10}. Antibacterials and Non-Steroidal Anti-Inflammatory Drugs also show relatively high values across the larger districts.
+
+The highest values are concentrated in districts such as Counties Manukau, Waitemata, Canterbury, and Auckland. This pattern is consistent across several therapeutic groups rather than being restricted to a single category.
+
+Smaller districts generally have lower absolute patient counts across most of the therapeutic groups.
+
+This indicates that much of the variation visible in the heatmap is likely related to district size. However, the heatmap can still identify whether particular therapeutic groups behave differently from the general district pattern.
+
+For example, if a district had unusually high values for one therapeutic group relative to its other categories, this could provide a basis for further investigation.
+
+
+\section{Comparison of the Main Patterns}
+
+The four figures provide complementary views of the same dataset.
+
+Figure~\ref{fig:top10} identifies which therapeutic groups have the largest aggregate patient counts. Figure~\ref{fig:trend} then shows that these groups do not all follow the same trajectory over time.
+
+Figure~\ref{fig:district} demonstrates that absolute patient counts differ substantially between districts. Figure~\ref{fig:heatmap} combines these two dimensions and shows that district differences occur across multiple therapeutic categories.
+
+Taken together, the analysis suggests three main patterns:
+
+\begin{enumerate}
+    \item pharmaceutical patient counts are concentrated in a small number of therapeutic groups;
+    \item patient counts change differently across therapeutic groups over time;
+    \item absolute patient counts vary strongly between districts.
+\end{enumerate}
+
+These observations provide useful directions for further statistical analysis, particularly analyses that account for population size and examine changes within individual therapeutic groups.
+
+
+\chapter{Ethics, Privacy and Security}
+
+\section{Ethical Considerations}
+
+The pharmaceutical dataset is derived from an official government health data source and is provided publicly in statistical, non-identifiable form. The analysis therefore does not directly involve identifiable individual patients.
+
+Nevertheless, pharmaceutical data represent health-related information and require careful interpretation. Patterns in pharmaceutical use can be sensitive because they may indirectly reflect the prevalence or treatment of health conditions within populations.
+
+The analysis should therefore avoid making unsupported conclusions about individuals or specific communities. In particular, differences in pharmaceutical patient counts should not automatically be interpreted as differences in health status, disease prevalence, or quality of healthcare.
+
+Another ethical consideration is the interpretation of geographical differences. A district with a high absolute patient count may simply have a larger population. Reporting raw totals without this context could create misleading comparisons between communities.
+
+
+\section{Privacy}
+
+The public pharmaceutical data have already been aggregated and anonymised. Small values are suppressed using ``<6'', which prevents exact counts from being reported when the number of patients is very small.
+
+This suppression is important because combining detailed geographical and pharmaceutical information can increase the risk of identifying small groups.
+
+The analysis retains this privacy protection by treating ``<6'' as missing rather than attempting to infer or reconstruct the original value.
+
+The Census data also require particular care. More geographically detailed Census information can potentially describe relatively small groups of households. Although these data are publicly available in aggregated form, combining them with other datasets could increase the level of detail about particular communities.
+
+
+\section{Data Security}
+
+The analysis was carried out using the provided datasets and statistical software. The public datasets themselves do not contain directly identifiable patient information.
+
+If more detailed or non-public health data were used in future work, stronger security measures would be required. These could include restricted access, encrypted storage, controlled sharing of datasets, and removal of unnecessary identifying variables.
+
+The project did not attempt to access restricted patient-level information.
+
+
+\chapter{Key Findings and Discussion}
+
+\section{Main Findings}
+
+The exploratory analysis identified several important patterns.
+
+First, Analgesics have the largest aggregate number of patients associated with initial dispensings between 2021 and 2025. Antibacterials and Non-Steroidal Anti-Inflammatory Drugs are the next largest groups.
+
+Second, the top therapeutic groups do not all follow the same temporal pattern. Analgesics and Antibacterials increase strongly in the early part of the study period before becoming more stable or declining slightly. Other categories, such as Non-Steroidal Anti-Inflammatory Drugs, show a more consistent upward trend.
+
+Third, there are large differences in absolute patient counts between districts. Counties Manukau, Waitemata, and Canterbury have the largest totals, while West Coast has the smallest.
+
+Fourth, the district heatmap indicates that the district-level differences occur across multiple therapeutic groups. This suggests that overall district size is an important factor in explaining the absolute differences.
+
+
+\section{Interpretation of Patient Counts}
+
+An important limitation of the analysis is the interpretation of \texttt{NumPpl} after aggregation.
+
+The variable represents the number of patients associated with pharmaceutical records. When values are summed across multiple therapeutic groups or years, the resulting total should not be interpreted as the number of unique individuals in New Zealand.
+
+For example, the same person may be associated with multiple therapeutic groups or may appear in more than one year. Therefore, the aggregate values represent patient counts associated with the relevant records rather than a deduplicated population count.
+
+This distinction is particularly important when comparing the five-year totals in Figures~\ref{fig:top10} and~\ref{fig:district}.
+
+
+\section{Population Size and District Comparisons}
+
+The district analysis highlights the importance of using appropriate denominators.
+
+Absolute patient counts are useful for understanding the overall volume of pharmaceutical activity, but they are not sufficient for comparing pharmaceutical use between populations of different sizes.
+
+For example, Counties Manukau has a much larger aggregate patient count than West Coast. This does not mean that an individual living in Counties Manukau is necessarily more likely to receive an initial dispensing.
+
+A population-adjusted measure would allow the analysis to distinguish between differences caused by population size and differences in the rate of pharmaceutical activity.
+
+The Census dataset provides an opportunity for this type of extension. Population variables could be integrated with district-level pharmaceutical data to calculate rates per population and potentially examine demographic differences.
+
+
+\section{Potential Further Analysis}
+
+The exploratory results suggest several directions for further analysis.
+
+First, patient counts could be normalised using district population to calculate rates per 1,000 residents.
+
+Second, the temporal trends could be analysed using year-over-year percentage changes rather than absolute patient counts.
+
+Third, demographic Census variables could be integrated with pharmaceutical data to investigate whether differences in patient rates are associated with population characteristics such as age, employment status, ethnicity, smoking status, or income.
+
+Finally, statistical models could be used to determine whether observed differences between districts remain after controlling for population size and other explanatory variables.
+
+
+\section{Limitations}
+
+Several limitations should be considered.
+
+The first limitation is the suppression of small counts. Values reported as ``<6'' cannot be converted into exact numerical observations and were therefore excluded from numerical aggregation.
+
+The second limitation is that the analysis uses aggregate patient counts rather than unique patient identifiers. The results therefore describe patient-associated records and cannot be interpreted as the number of distinct people represented across the entire five-year period.
+
+The third limitation is that absolute district totals are strongly influenced by population size. Without population adjustment, districts cannot be compared directly as measures of individual pharmaceutical use.
+
+The fourth limitation is that the analysis is descriptive. The observed patterns do not demonstrate causal relationships.
+
+Finally, the analysis focuses on Therapeutic Group Level 2 categories. Differences between individual medicines within a therapeutic group are therefore not examined.
+
+
+\chapter{Conclusion}
+
+This project explored pharmaceutical patient patterns in New Zealand between 2021 and 2025 using Health New Zealand pharmaceutical data.
+
+Analgesics had the highest aggregate number of patients associated with initial dispensings, followed by Antibacterials and Non-Steroidal Anti-Inflammatory Drugs. The temporal analysis showed that therapeutic groups followed different trajectories, with some increasing steadily while others increased initially and then became more stable.
+
+There were also substantial differences in absolute patient counts between health districts. Counties Manukau, Waitemata, and Canterbury had the largest totals, while West Coast had the smallest.
+
+The results demonstrate that pharmaceutical activity varies across therapeutic groups, time, and geography. However, absolute patient counts are influenced by population size and should not be interpreted as individual-level pharmaceutical usage rates.
+
+The most useful next step would be to integrate population information from Census data and calculate population-adjusted rates. This would allow geographical differences to be interpreted more meaningfully and provide a stronger basis for investigating demographic and temporal patterns in pharmaceutical use.
+
+
+\appendix
+
+\chapter{Additional Results}
+
+\section{Data Preparation Checks}
+
+The pharmaceutical dataset was inspected before analysis to identify its structure, variable types, missing values, and duplicated observations.
+
+The patient count variable contained observations reported as ``<6''. These values were identified before numerical conversion and treated as missing.
+
+The national ``New Zealand'' total was removed from the district-level analysis so that the remaining observations represented individual districts.
+
+The resulting dataset was then grouped by therapeutic group, year, and district to produce the aggregate values used in the figures.
+
+
+\section{Summary of the Four Main Figures}
+
+\begin{table}[H]
+\centering
+\caption{Summary of the Main Exploratory Analysis Figures}
+\label{tab:figures}
+\begin{tabular}{p{2cm}p{4cm}p{7cm}}
+\toprule
+\textbf{Figure} & \textbf{Analysis} & \textbf{Purpose} \\
+\midrule
+Figure 1 & Top 10 Therapeutic Groups & Identifies the therapeutic groups with the highest aggregate patient counts. \\
+Figure 2 & Patient Trends & Examines changes in patient counts from 2021 to 2025. \\
+Figure 3 & District Comparison & Compares aggregate patient counts across health districts. \\
+Figure 4 & District Heatmap & Examines therapeutic group patterns across health districts. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\chapter{Individual Contributions}
+
+\section{Group Contributions}
+
+\begin{itemize}
+    \item \textbf{Jessica Saucedo Mancias}: Bibliography management.
+    \item \textbf{Nam Bui}: Repository management and project organisation.
+    \item \textbf{Tianyi Xu}: Report and LaTeX document preparation.
+    \item \textbf{Zion Swinburne}: Data collection and Census data collection.
+\end{itemize}
+
+
+\chapter{References}
+
+\begin{enumerate}
+
+\item Health New Zealand. 2026. \textit{Pharmaceutical Data web tool}, version 07 August 2026. Data extracted from the Pharmaceutical Collection on 09 July 2026.
+
+\item Statistics New Zealand. 2023. \textit{Aotearoa Data Explorer: 2023 Census, Totals by Topic}.
+
+\end{enumerate}
+
+
+\end{document}
