@@ -105,25 +105,25 @@ summary(pharmac)
 ```
 
 ```{r}
-pharmac <- pharmac %>%
+pharmacCorr <- pharmac %>%
   mutate(
     dispensings_per_patient = NumDisps / NumPpl
   )
 ```
 
 ```{r}
-summary(pharmac$dispensings_per_patient)
+summary(pharmacCorr$dispensings_per_patient)
 ```
 
 ```{r}
-ggplot(pharmac, aes(x = dispensings_per_patient)) +
+ggplot(pharmacCorr, aes(x = dispensings_per_patient)) +
   geom_histogram(bins = 40) +
   scale_x_log10() +
   theme_minimal()
 ```
 
 ```{r}
-pharmac %>%
+pharmacCorr %>%
   group_by(TherapeuticGrp2) %>%
   summarise(
     median_dispensings_per_patient =
@@ -133,7 +133,7 @@ pharmac %>%
 ```
 
 ```{r}
-pharmac %>%
+pharmacCorr %>%
   summarise(
     correlation = cor(NumPpl, NumDisps, use = "complete.obs")
   )
@@ -142,7 +142,7 @@ pharmac %>%
 ```
 
 ```{r}
-ggplot(pharmac, aes(x = NumPpl, y = NumDisps)) +
+ggplot(pharmacCorr, aes(x = NumPpl, y = NumDisps)) +
   geom_point(alpha = 0.15) +
   scale_x_log10(labels = scales::comma) +
   scale_y_log10(labels = scales::comma) +
@@ -415,8 +415,6 @@ top10_med_groups <- integrated_data %>%
   summarise(Grand_Total_Patients = sum(NumPpl, na.rm = TRUE), .groups = "drop") %>%
   slice_max(Grand_Total_Patients, n = 10, with_ties = FALSE) %>%
   pull(TherapeuticGrp2)
-
-
 
 top10_integrated <- integrated_data %>%
   filter(TherapeuticGrp2 %in% top10_med_groups)
