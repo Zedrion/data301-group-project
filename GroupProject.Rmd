@@ -397,6 +397,8 @@ dhb_shp <- st_read(file.choose())
 
 names(dhb_shp)
 ```
+## Drop geometry data for clarity, select district name and ID columns
+
 ```{r}
 dhb_shp %>%
   st_drop_geometry() %>%
@@ -407,35 +409,50 @@ dhb_shp %>%
 ## Check district name matching
 
 ```{r}
-setdiff(district_total$District, dhb_shp$HD_L2_20_1)
-setdiff(dhb_shp$HD_L2_20_1, district_total$District)
+setdiff(district_total$District, dhb_shp$HD_L2_20_2)
+setdiff(dhb_shp$HD_L2_20_2, district_total$District)
 ```
-```{r}
-library(stringi)
 
+## Resolve district name mismatch
+
+```{r}
 dhb_shp <- dhb_shp %>%
-  mutate(HD_L2_20_1_clean = stri_trans_general(HD_L2_20_1, "Latin-ASCII"))
+  mutate(HD_L2_20_2 = if_else(
+    HD_L2_20_2 == "Capital and Coast",
+    "Capital & Coast",
+    HD_L2_20_2
+  ))
+```
+
+```{r}
+setdiff(district_total$District, dhb_shp$HD_L2_20_2)
+setdiff(dhb_shp$HD_L2_20_2, district_total$District)
 ```
 
 ## Join dispensing totals onto district geometry
 
 ```{r}
 map_data <- dhb_shp %>%
-  left_join(district_total, by = c("HD_L2_20_1_clean" = "District"))
+  left_join(district_total, by = c("HD_L2_20_2" = "District"))
 ```
 
 ```{r}
 # does each district appear once per row after join, or did the join fan out?
 map_data %>%
   st_drop_geometry() %>%
-  count(HD_L2_20_1_clean) %>%
+  count(HD_L2_20_2) %>%
   arrange(desc(n))
 ```
 
-## Figure 5: Total Initial Dispensings by District (Map)
+```{r}
+map_data_clean <- map_data %>%
+  filter(HD_L2_20_2 != "Area outside health district" | is.na(HD_L2_20_2))
+```
+
+## Figure 5: Total Initial Dispensings (NumDisps) by District (Map)
 
 ```{r}
-fig5 <- ggplot(map_data) +
+fig5 <- ggplot(map_data_clean) +
   geom_sf(
     aes(fill = total_dispensings),
     colour = "grey40",
@@ -490,20 +507,25 @@ district_total_ppl
 
 ```{r}
 map_data_ppl <- dhb_shp %>%
-  left_join(district_total_ppl, by = c("HD_L2_20_1_clean" = "District"))
+  left_join(district_total_ppl, by = c("HD_L2_20_2" = "District"))
 ```
 
 ```{r}
 map_data_ppl %>%
   st_drop_geometry() %>%
-  count(HD_L2_20_1_clean) %>%
+  count(HD_L2_20_2) %>%
   arrange(desc(n))
+```
+
+```{r}
+map_data_ppl_clean <- map_data_ppl %>%
+  filter(HD_L2_20_2 != "Area outside health district" | is.na(HD_L2_20_2))
 ```
 
 ## Figure 6: Total Distinct Patients (NumPpl) by District (Map)
 
 ```{r}
-fig6 <- ggplot(map_data_ppl) +
+fig6 <- ggplot(map_data_ppl_clean) +
   geom_sf(
     aes(fill = total_ppl),
     colour = "grey40",
@@ -535,14 +557,6 @@ ggsave(
   height = 8,
   dpi = 300
 )
-```
-```{r}
-ratio_data <- district_total %>%
-  left_join(district_total_ppl, by = "District") %>%
-  mutate(disps_per_person = total_dispensings / total_ppl) %>%
-  arrange(desc(disps_per_person))
-
-ratio_data
 ```
 
 ## Key results
