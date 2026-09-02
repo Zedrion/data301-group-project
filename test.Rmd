@@ -1,0 +1,499 @@
+---
+title: "Untitled"
+author: "Zion Swinburne"
+date: "2026-09-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Very Important Packages
+library(dplyr)
+library(ggcorrplot)
+library(ggplot2)
+library(tidyverse)
+```
+
+## Data Understanding
+
+### Part 1: Just Pharmac Data
+
+```{r}
+pharmac <- read.csv("Data_ByTG2_Regional.csv", header = TRUE)
+head(pharmac)
+
+# We can remove variables Type, TG2ID, and NHI Completeness
+# Type and NHI Completeness only contain one unique variable, 
+# and TG2ID is a less informative repeat of TherapeuticGroup2
+```
+
+```{r}
+drops <- c("Type", "TG2ID", "NHIComp")
+pharmac <- pharmac[ , !(names(pharmac) %in% drops)]
+
+pharmac$TherapeuticGrp2 <- as.factor(pharmac$TherapeuticGrp2)
+pharmac$District <- as.factor(pharmac$District)
+
+head(pharmac)
+```
+
+```{r}
+dim(pharmac)
+# 12396 observations with 5 variables
+```
+
+```{r}
+summary(pharmac)
+# We can see NumDisp and NumPpl are characters when we want them to be numeric ints
+# This is because observations with counts less than 6 are noted as <6
+# to protect the anonymity of patients receiving less commonly prescribed medications
+# We will have to deal with this.
+```
+
+```{r}
+# No missing data!
+any(is.na(pharmac))
+```
+
+```{r}
+# Shape and Structure of <6 observations
+pharmacSuppressed <- pharmac %>% filter(NumDisps == "<6" | NumPpl == "<6")
+head(pharmacSuppressed)
+```
+
+```{r}
+dim(pharmacSuppressed)
+# 524 suppressed observations
+```
+
+```{r}
+summary(pharmacSuppressed)
+```
+
+```{r}
+# TG2 pharamaceuticals with most commonly suppressed observations
+topSuppressed <- pharmacSuppressed %>%
+  count(TherapeuticGrp2, sort = TRUE, name = "TG2_count") %>% 
+  slice_head(n = 10)
+
+print(topSuppressed)
+```
+
+```{r}
+# Districts with most commonly suppressed observations
+topSuppressed <- pharmacSuppressed %>%
+  count(District, sort = TRUE, name = "District_count") %>% 
+  slice_head(n = 10)
+
+print(topSuppressed)
+```
+
+```{r}
+# Now that we've identified rows with <6 observations, we can remove these rows
+# from the working dataset and convert NumPpl and NumDisps to int
+
+pharmac <- pharmac %>%
+  filter(NumDisps != "<6", NumPpl != "<6") %>%
+  
+  mutate(
+    across(c(NumDisps, NumPpl), as.numeric)
+  )
+```
+
+```{r}
+# Yahoo!!
+summary(pharmac)
+```
+
+```{r}
+pharmac <- pharmac %>%
+  mutate(
+    dispensings_per_patient = NumDisps / NumPpl
+  )
+```
+
+```{r}
+summary(pharmac$dispensings_per_patient)
+```
+
+```{r}
+ggplot(pharmac, aes(x = dispensings_per_patient)) +
+  geom_histogram(bins = 40) +
+  scale_x_log10() +
+  theme_minimal()
+```
+
+```{r}
+pharmac %>%
+  group_by(TherapeuticGrp2) %>%
+  summarise(
+    median_dispensings_per_patient =
+      median(dispensings_per_patient, na.rm = TRUE)
+  ) %>%
+  slice_max(median_dispensings_per_patient, n = 15)
+```
+
+```{r}
+pharmac %>%
+  summarise(
+    correlation = cor(NumPpl, NumDisps, use = "complete.obs")
+  )
+
+# Surprise, highly correlated
+```
+
+```{r}
+ggplot(pharmac, aes(x = NumPpl, y = NumDisps)) +
+  geom_point(alpha = 0.15) +
+  scale_x_log10(labels = scales::comma) +
+  scale_y_log10(labels = scales::comma) +
+  geom_smooth(method = "lm", se = FALSE, colour = "red") +
+  labs(
+    title = "Patients vs Dispensings",
+    x = "Patients",
+    y = "Dispensings"
+  ) +
+  theme_minimal()
+
+# NumPpl and NumDisps are expected to be strongly positively associated because more patients generally generate more dispensings
+```
+
+```{r}
+# Now we actually need to do EDA...
+# First correlation plot. Only 2 numeric variables and they should correlate with eachother very strongly due to multicollinearity 
+
+```
+
+```{r}
+pharmacNZ <- pharmac %>% filter(District == "New Zealand")
+
+ggplot(pharmacNZ, aes(x=NumPpl, y=District)) + geom_boxplot() + theme(axis.text.x  = element_text(angle=90, vjust=0.5))
+```
+
+```{r}
+# New Zealand totals per year
+ggplot(pharmacNZ, aes(x = factor(YearDisp), y = NumPpl)) +
+  geom_boxplot() +
+  labs(
+    x = "Year",
+    y = "Number of People"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+pharmacDistrict <- pharmac %>% filter(District != "New Zealand")
+
+ggplot(pharmacDistrict, aes(x = reorder(District, NumPpl, median), y = NumPpl)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  coord_flip() +
+  scale_y_log10(labels = scales::comma) +
+  labs(
+    x = "District",
+    y = "Patients (log scale)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+ggplot(pharmacDistrict, aes(x = reorder(District, NumPpl, median), y = NumPpl)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  facet_wrap(~ YearDisp) +
+  coord_flip() +
+  scale_y_log10(labels = scales::comma) +
+  labs(
+    x = "District",
+    y = "Patients (log scale)"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+pharmacDistrict %>%
+  group_by(District, YearDisp) %>%
+  summarise(
+    patients = sum(NumPpl),
+    dispensings = sum(NumDisps),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = YearDisp, y = patients, colour = District)) +
+  geom_line() +
+  labs(
+    title = "Patient Counts by District Over Time",
+    x = "Year",
+    y = "Patients"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+top10_grps <- pharmacDistrict %>%
+  count(TherapeuticGrp2, wt = NumDisps, name = "total_dispensings") %>%
+  slice_max(total_dispensings, n = 10, with_ties = FALSE) %>%
+  pull(TherapeuticGrp2)
+
+pharmacDistrict %>%
+  filter(TherapeuticGrp2 %in% top10_grps) %>%
+  group_by(District, TherapeuticGrp2) %>%
+  summarise(total_dispensings = sum(NumDisps, na.rm = TRUE), .groups = "drop") %>%
+  
+  mutate(
+    TherapeuticGrp2 = factor(TherapeuticGrp2, levels = rev(top10_grps)),
+    District = fct_reorder(District, total_dispensings, .fun = sum)
+  ) %>% 
+  
+  ggplot(aes(x = TherapeuticGrp2, y = District, fill = total_dispensings)) +
+  geom_tile() +
+  scale_fill_viridis_c(option = "turbo", labels = scales::comma) + 
+  labs(
+    title = "Top 10 Therapeutic Groups by District",
+    x = "Therapeutic Group Level 2",
+    y = "District",
+    fill = "Total initial dispensings"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+    axis.text.y = element_text(size = 9)
+  )
+
+```
+
+```{r}
+# Number of bins for a histogram
+bins <- as.integer(sqrt(nrow(pharmac)))
+bins
+```
+
+```{r}
+ggplot(pharmacDistrict, aes(x = NumPpl)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") + 
+  scale_x_log10(labels = scales::comma) + # Essential for heavily skewed count data
+  labs(title = "Distribution of Patients per District (Log Scale)", x = "Number of People (Log10)", y = "Frequency") +
+  facet_wrap(~ District, ncol = 4) +
+  theme_minimal()
+```
+
+```{r}
+ggplot(pharmacDistrict, aes(x = NumDisps)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") + 
+  scale_x_log10(labels = scales::comma) + # Essential for heavily skewed count data
+  labs(title = "Distribution of Dispensings per District (Log Scale)", x = "Number of Dispensings (Log10)", y = "Frequency") +
+  facet_wrap(~ District, ncol = 4) +
+  theme_minimal()
+```
+
+### Part 2: Just Census Data
+
+```{r}
+census <- read.csv("census2023.csv", header = TRUE)
+head(census)
+```
+
+```{r}
+dim(census)
+# 20 values with 29 variables.
+# New Zealand is included, Capital and Coast and Hutt Valley are combined into one area (represents merger of the two districts in 2021)
+```
+
+```{r}
+summary(census)
+```
+
+```{r}
+# No missing data!
+any(is.na(census))
+```
+
+```{r}
+census_numeric <- census %>%
+  filter(Area != "New Zealand") %>%
+  select(where(is.numeric))
+
+cor_matrix <- cor(census_numeric, use = "pairwise.complete.obs")
+
+ggcorrplot(
+  cor_matrix,
+  type = "lower",
+  lab = FALSE,
+  hc.order = TRUE
+)
+```
+
+```{r}
+area_summaries <- census %>%
+  filter(Area != "New Zealand") %>%
+  select(Area, where(is.numeric)) %>%
+  pivot_longer(cols = -Area, names_to = "Variable", values_to = "Value") %>%
+  group_by(Area, Variable) %>%
+  summarise(Mean_Value = mean(Value, na.rm = TRUE), .groups = "drop")
+
+top10_differentiating_vars <- census %>%
+  filter(Area != "New Zealand") %>%
+  select(where(is.numeric)) %>%
+  summarise(across(everything(), ~ sd(.x, na.rm = TRUE) / mean(.x, na.rm = TRUE))) %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "CV") %>%
+  slice_max(CV, n = 10, with_ties = FALSE) %>%
+  pull(Variable)
+
+area_summaries %>%
+  filter(Variable %in% top10_differentiating_vars) %>%
+  group_by(Variable) %>%
+  mutate(Scaled_Value = scale(Mean_Value)[, 1]) %>% 
+  ungroup() %>%
+  mutate(
+    Variable = factor(Variable, levels = top10_differentiating_vars),
+    Area = fct_reorder(Area, Scaled_Value, .fun = sum)
+  ) %>% 
+  
+  ggplot(aes(x = Variable, y = Area, fill = Scaled_Value)) +
+  geom_tile(color = "white", linewidth = 0.1) +
+  scale_fill_viridis_c(option = "inferno", name = "Relative Score\n(Z-Score)") +
+  labs(
+    title = "Top 10 Demographic Profiles in Districts",
+    x = "Demographic",
+    y = "District"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
+    axis.text.y = element_text(size = 9),
+    panel.grid = element_blank()
+  )
+
+```
+
+### Part 3: Putting Them Together
+
+```{r}
+to_merge <- pharmac %>% 
+  filter(District %in% c("Capital & Coast", "Hutt Valley"))
+
+unchanged_data <- pharmac %>% 
+  filter(!District %in% c("Capital & Coast", "Hutt Valley"))
+
+merged_districts <- to_merge %>%
+  group_by(YearDisp, TherapeuticGrp2) %>%
+  summarise(
+    NumDisps = sum(NumDisps, na.rm = TRUE),
+    NumPpl = sum(NumPpl, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(District = "Capital, Coast and Hutt Valley") # Exact Census name
+
+pharmac_clean <- bind_rows(unchanged_data, merged_districts)
+```
+
+```{r}
+integrated_data <- pharmac_clean %>%
+  filter(District != "New Zealand") %>%
+  left_join(
+    census %>% filter(Area != "New Zealand"), 
+    by = c("District" = "Area")
+  )
+
+if ("Population" %in% colnames(integrated_data)) {
+  integrated_data <- integrated_data %>%
+    mutate(
+      Dispensings_Per_1k = (NumDisps / Population) * 1000,
+      Patients_Per_1k    = (NumPpl / Population) * 1000
+    )
+}
+```
+
+```{r}
+head(integrated_data)
+```
+
+final attempt
+
+```{r}
+top10_med_groups <- integrated_data %>%
+  group_by(TherapeuticGrp2) %>%
+  summarise(Grand_Total_Patients = sum(NumPpl, na.rm = TRUE), .groups = "drop") %>%
+  slice_max(Grand_Total_Patients, n = 10, with_ties = FALSE) %>%
+  pull(TherapeuticGrp2)
+
+
+
+top10_integrated <- integrated_data %>%
+  filter(TherapeuticGrp2 %in% top10_med_groups)
+```
+
+```{r}
+district_demo_profiles <- top10_integrated %>%
+  select(District, Patients_Per_1k, where(is.numeric)) %>%
+  select(-any_of(c("Total_Population_Column", "YearDisp", "NumDisps", "NumPpl", "Dispensings_Per_1k"))) %>%
+  pivot_longer(cols = -c(District, Patients_Per_1k), names_to = "Demographic_Variable", values_to = "Demographic_Value") %>%
+  group_by(District, Demographic_Variable) %>%
+  summarise(Mean_Patient_Rate = mean(Patients_Per_1k, na.rm = TRUE), Mean_Demo_Val = mean(Demographic_Value, na.rm = TRUE), .groups = "drop")
+
+top10_demo_correlations <- district_demo_profiles %>%
+  group_by(Demographic_Variable) %>%
+  summarise(Patient_Correlation = cor(Mean_Patient_Rate, Mean_Demo_Val, use = "complete.obs"), .groups = "drop") %>%
+  slice_max(abs(Patient_Correlation), n = 10, with_ties = FALSE) %>%
+  pull(Demographic_Variable)
+
+district_demo_profiles %>%
+  filter(Demographic_Variable %in% top10_demo_correlations) %>%
+  group_by(Demographic_Variable) %>%
+  mutate(Scaled_Value = scale(Mean_Demo_Val)[, 1]) %>% 
+  ungroup() %>%
+  mutate(Demographic_Variable = factor(Demographic_Variable, levels = top10_demo_correlations), District = fct_reorder(District, Scaled_Value, .fun = sum)) %>% 
+  ggplot(aes(x = Demographic_Variable, y = District, fill = Scaled_Value)) +
+  geom_tile(color = "white", linewidth = 0.1) +
+  scale_fill_viridis_c(option = "inferno", name = "Z-Score") +
+  labs(title = "Top 10 Demographic Profiles in Districts", subtitle = "Ordered by correlation with Patient Rates", x = "Demographic Variable", y = "District") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9), panel.grid = element_blank())
+
+```
+
+```{r}
+district_med_profiles <- top10_integrated %>%
+  group_by(District, TherapeuticGrp2) %>%
+  summarise(Mean_Patient_Rate = mean(Patients_Per_1k, na.rm = TRUE), .groups = "drop") %>%
+  mutate(District = fct_reorder(District, Mean_Patient_Rate, .fun = sum), TherapeuticGrp2 = fct_reorder(TherapeuticGrp2, Mean_Patient_Rate, .fun = sum))
+
+ggplot(district_med_profiles, aes(x = TherapeuticGrp2, y = District, fill = Mean_Patient_Rate)) +
+  geom_tile(color = "white", linewidth = 0.1) +
+  scale_fill_viridis_c(option = "inferno", name = "Patients per 1k") +
+  labs(title = "Top 10 Medication Patient Rates by District", x = "Therapeutic Group", y = "District") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9), panel.grid = element_blank())
+
+```
+
+```{r}
+annual_demo_shifts <- top10_integrated %>%
+  select(District, YearDisp, Patients_Per_1k, where(is.numeric)) %>%
+  select(-any_of(c("Total_Population_Column", "NumDisps", "NumPpl", "Dispensings_Per_1k"))) %>%
+  pivot_longer(cols = -c(District, YearDisp, Patients_Per_1k), names_to = "Demographic_Variable", values_to = "Demographic_Value") %>%
+  filter(Demographic_Variable %in% top10_demo_correlations) %>%
+  group_by(District, YearDisp, Demographic_Variable) %>%
+  summarise(Annual_Patient_Rate = mean(Patients_Per_1k, na.rm = TRUE), .groups = "drop") %>%
+  mutate(District = fct_reorder(District, Annual_Patient_Rate, .fun = sum))
+
+ggplot(annual_demo_shifts, aes(x = Demographic_Variable, y = District, fill = Annual_Patient_Rate)) +
+  geom_tile(color = "white", linewidth = 0.1) +
+  scale_fill_viridis_c(option = "turbo", name = "Patients per 1k") +
+  facet_wrap(~ YearDisp, ncol = 5) +
+  labs(title = "Demographic Patient Rate Shifts Across Years", x = "Core Demographic Feature", y = "District") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 7), panel.grid = element_blank())
+```
+
+```{r}
+# Aggregate granular medication rates per year
+annual_med_shifts <- top10_integrated %>%
+  group_by(District, YearDisp, TherapeuticGrp2) %>%
+  summarise(Annual_Patient_Rate = mean(Patients_Per_1k, na.rm = TRUE), .groups = "drop") %>%
+  mutate(District = fct_reorder(District, Annual_Patient_Rate, .fun = sum), TherapeuticGrp2 = fct_reorder(TherapeuticGrp2, Annual_Patient_Rate, .fun = sum))
+
+ggplot(annual_med_shifts, aes(x = TherapeuticGrp2, y = District, fill = Annual_Patient_Rate)) +
+  geom_tile(color = "white", linewidth = 0.1) +
+  scale_fill_viridis_c(option = "turbo", name = "Patients per 1k") +
+  facet_wrap(~ YearDisp, ncol = 5) +
+  labs(title = "Medication Patient Rate Shifts Across Years", x = "Therapeutic Group", y = "District") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 7), panel.grid = element_blank())
+
+```
