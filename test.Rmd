@@ -348,7 +348,7 @@ area_summaries %>%
   ) %>% 
   
   ggplot(aes(x = Variable, y = Area, fill = Scaled_Value)) +
-  geom_tile(color = "white", linewidth = 0.1) +
+  geom_tile(linewidth = 0.1) +
   scale_fill_viridis_c(option = "inferno", name = "Relative Score\n(Z-Score)") +
   labs(
     title = "Top 10 Demographic Profiles in Districts",
@@ -441,7 +441,7 @@ district_demo_profiles %>%
   ungroup() %>%
   mutate(Demographic_Variable = factor(Demographic_Variable, levels = top10_demo_correlations), District = fct_reorder(District, Scaled_Value, .fun = sum)) %>% 
   ggplot(aes(x = Demographic_Variable, y = District, fill = Scaled_Value)) +
-  geom_tile(color = "white", linewidth = 0.1) +
+  geom_tile(linewidth = 0.1) +
   scale_fill_viridis_c(option = "inferno", name = "Z-Score") +
   labs(title = "Top 10 Demographic Profiles in Districts", subtitle = "Ordered by correlation with Patient Rates", x = "Demographic Variable", y = "District") +
   theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9), panel.grid = element_blank())
@@ -455,7 +455,7 @@ district_med_profiles <- top10_integrated %>%
   mutate(District = fct_reorder(District, Mean_Patient_Rate, .fun = sum), TherapeuticGrp2 = fct_reorder(TherapeuticGrp2, Mean_Patient_Rate, .fun = sum))
 
 ggplot(district_med_profiles, aes(x = TherapeuticGrp2, y = District, fill = Mean_Patient_Rate)) +
-  geom_tile(color = "white", linewidth = 0.1) +
+  geom_tile(linewidth = 0.1) +
   scale_fill_viridis_c(option = "inferno", name = "Patients per 1k") +
   labs(title = "Top 10 Medication Patient Rates by District", x = "Therapeutic Group", y = "District") +
   theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 9), panel.grid = element_blank())
@@ -488,10 +488,14 @@ annual_med_shifts <- top10_integrated %>%
   mutate(District = fct_reorder(District, Annual_Patient_Rate, .fun = sum), TherapeuticGrp2 = fct_reorder(TherapeuticGrp2, Annual_Patient_Rate, .fun = sum))
 
 ggplot(annual_med_shifts, aes(x = TherapeuticGrp2, y = District, fill = Annual_Patient_Rate)) +
-  geom_tile(color = "white", linewidth = 0.1) +
+  geom_tile(linewidth = 0.1) +
   scale_fill_viridis_c(option = "turbo", name = "Patients per 1k") +
   facet_wrap(~ YearDisp, ncol = 5) +
   labs(title = "Medication Patient Rate Shifts Across Years", x = "Therapeutic Group", y = "District") +
-  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 7), panel.grid = element_blank())
+  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 4), panel.grid = element_blank())
 
+```
+
+```{r}
+# I also want medication and demographic 
 ```
